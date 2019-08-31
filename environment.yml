@@ -4,6 +4,7 @@ channels:
   - defaults
 dependencies:
   - _libgcc_mutex=0.1=main
+  - absl-py=0.7.1=py37_0
   - blas=1.0=mkl
   - bzip2=1.0.8=h7b6447c_0
   - ca-certificates=2019.5.15=1
