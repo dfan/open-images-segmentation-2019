@@ -195,3 +195,38 @@ def build_predictions_dictionary(data, class_label_map):
     ]].as_matrix()
 
   return dictionary
+
+# Fixed to accomodate prediction format of Kaggle competition
+def build_predictions_dictionary_kaggle(data, class_label_map):
+  """Builds a predictions dictionary from predictions data in CSV file.
+
+  Args:
+    data: Pandas DataFrame with the predictions data for a single image.
+    class_label_map: Class labelmap from string label name to an integer.
+
+  Returns:
+    Dictionary with keys suitable for passing to
+    OpenImagesDetectionChallengeEvaluator.add_single_detected_image_info:
+        standard_fields.DetectionResultFields.detection_boxes: float32 numpy
+          array of shape [num_boxes, 4] containing `num_boxes` detection boxes
+          of the format [ymin, xmin, ymax, xmax] in absolute image coordinates.
+        standard_fields.DetectionResultFields.detection_scores: float32 numpy
+          array of shape [num_boxes] containing detection scores for the boxes.
+        standard_fields.DetectionResultFields.detection_classes: integer numpy
+          array of shape [num_boxes] containing 1-indexed detection classes for
+          the boxes.
+
+  """
+  dictionary = {
+      standard_fields.DetectionResultFields.detection_classes:
+          data['PredictionString'].map(lambda x: class_label_map[x.split(' ')[0]]).as_matrix(),
+      standard_fields.DetectionResultFields.detection_scores:
+          data['PredictionString'].map(lambda x: class_label_map[x.split(' ')[1]]).as_matrix(),
+  }
+
+  segments, boxes = _decode_raw_data_into_masks_and_boxes(
+      data['PredictionString'].map(lambda x: class_label_map[x.split(' ')[2]]).as_matrix(), data['ImageWidth'], data['ImageHeight'])
+  dictionary[standard_fields.DetectionResultFields.detection_masks] = segments
+  dictionary[standard_fields.DetectionResultFields.detection_boxes] = boxes
+
+  return dictionary

@@ -132,7 +132,7 @@ def main(unused_argv):
     challenge_evaluator.add_single_ground_truth_image_info(
         image_id, groundtruth_dictionary)
 
-    prediction_dictionary = utils.build_predictions_dictionary(
+    prediction_dictionary = utils.build_predictions_dictionary_kaggle(
         all_predictions.loc[all_predictions['ImageID'] == image_id],
         class_label_map)
     challenge_evaluator.add_single_detected_image_info(image_id,
