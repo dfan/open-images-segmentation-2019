@@ -28,7 +28,7 @@ def gen_new_validation_csv(seg_file, bbox_file, output_file):
     print('Generated IsGroupOf dictionary.')
 
     f_out = open(output_file, 'w')
-    header = 'ImageID,LabelName,ImageWidth,ImageHeight,XMin,YMin,XMax,YMax,IsGroupOf,Mask'
+    header = 'ImageID,LabelName,ImageWidth,ImageHeight,XMin,YMin,XMax,YMax,Score,Mask'
     f_out.write(header + '\n')
 
     counter = 0
@@ -38,8 +38,8 @@ def gen_new_validation_csv(seg_file, bbox_file, output_file):
             mask_name, image_id, label_name, _, x_min, y_min, x_max, y_max, _, _ = line.strip().split(',')
             # Form full mask and image path. Assuming data is structured per the readme.
             mask_folder_prefix = mask_name[0]
-            mask_path = '/home/dfan/Projects/kaggle/open-images-segmentation-2019/data/masks/validation/validation-masks-{}/{}'.format(mask_folder_prefix, mask_name) # e.g. validation-masks-a/blahblah.png
-            image_path = '/home/dfan/Projects/kaggle/open-images-segmentation-2019/data/images/validation/{}.jpg'.format(image_id)
+            mask_path = '/home/dfan/datasets/open_images_segmentation/masks/validation/validation-masks-{}/{}'.format(mask_folder_prefix, mask_name) # e.g. validation-masks-a/blahblah.png
+            image_path = '/home/dfan/datasets/open_images_segmentation/images/validation/{}.jpg'.format(image_id)
 
             # Get image width and height
             im = cv2.imread(image_path)
@@ -58,7 +58,7 @@ def gen_new_validation_csv(seg_file, bbox_file, output_file):
             mask = np.asfortranarray(mask)
 
             # RLE encode mask
-            encoded_mask = str(coco_mask.encode(mask)[0]["counts"])
+            encoded_mask = str(coco_mask.encode(mask)[0]["counts"], 'utf-8')
 
             # Write ImageID,LabelName,ImageWidth,ImageHeight,XMin,YMin,XMax,YMax,IsGroupOf,Mask
             f_out.write(image_id + ',' + label_name + ',' + str(width) + ',' + str(height) + ',' + x_min + ',' + y_min + ',' + x_max + ',' + y_max + ',' + is_group_of + ',' + encoded_mask + '\n')
@@ -78,7 +78,7 @@ if __name__ == "__main__":
     parser.add_argument('-o', '--output', type=str, required=True, help='Specify the output filename for new csv.')
     args = vars(parser.parse_args())
 
-    root_dir = '/home/dfan/Projects/kaggle/open-images-segmentation-2019/data/'
+    root_dir = '/home/dfan/datasets/open_images_segmentation/'
     seg_file = os.path.join(root_dir, args['segmentation'])
     bbox_file = os.path.join(root_dir, args['bbox'])
     output_file = os.path.join(root_dir, args['output'])

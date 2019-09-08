@@ -1,7 +1,7 @@
-HIERARCHY_FILE=/home/dfan/Projects/kaggle/open-images-segmentation-2019/data/challenge-2019-label300-segmentable-hierarchy
-BOUNDING_BOXES=/home/dfan/Projects/kaggle/open-images-segmentation-2019/data/challenge-2019-validation-segmentation-bbox
-IMAGE_LABELS=/home/dfan/Projects/kaggle/open-images-segmentation-2019/data/challenge-2019-validation-segmentation-imagelabels
-INSTANCE_SEGMENTATIONS=/home/dfan/Projects/kaggle/open-images-segmentation-2019/data/processed-validation-segmentation-masks
+HIERARCHY_FILE=/home/dfan/datasets/open_images_segmentation/challenge-2019-label300-segmentable-hierarchy
+BOUNDING_BOXES=/home/dfan/datasets/open_images_segmentation/challenge-2019-validation-segmentation-bbox
+IMAGE_LABELS=/home/dfan/datasets/open_images_segmentation/challenge-2019-validation-segmentation-imagelabels
+INSTANCE_SEGMENTATIONS=/home/dfan/datasets/open_images_segmentation/processed-validation-segmentation-masks
 
 python object_detection/dataset_tools/oid_hierarchical_labels_expansion.py \
     --json_hierarchy_file=${HIERARCHY_FILE}.json \
