@@ -1,6 +1,9 @@
 data/*
 output/*
 __pycache__/
+maskrcnn/model_weights/
 *.pyc
+*.pth
 sample_empty_submission.csv
 sample_truncated_submission.csv
+sample_validation_submission.csv
