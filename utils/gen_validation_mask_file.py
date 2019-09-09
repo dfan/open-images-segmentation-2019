@@ -16,7 +16,7 @@ from pycocotools import _mask as coco_mask
 # Return:
 #   N/A. Produces a new CSV file named "output_file" according to above specifications.
 def gen_new_validation_csv(seg_file, bbox_file, output_file):
-    # First get "isGroupOf" information. Key is ImageID, LabelName, XMin (rounded to 4 decimals) concatenated together
+    # First get "isGroupOf" information. Key is ImageID, LabelName, XMin (rounded to 2 decimals) concatenated together
     bbox_group_dict = {}
     with open(bbox_file, 'r') as f:
         next(f) # Skip header line
