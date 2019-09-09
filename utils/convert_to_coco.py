@@ -2,6 +2,8 @@
 
 import argparse
 import cv2
+from itertools import groupby
+import json
 import numpy as np
 import os
 from pycocotools import _mask as coco_mask
@@ -64,6 +66,16 @@ def get_bbox_dict(bbox_sourcefile):
   print('Generated IsGroupOf dictionary.')
   return bbox_group_dict
 
+def binary_mask_to_rle(binary_mask):
+  rle = {'counts': [], 'size': list(binary_mask.shape)}
+  counts = rle.get('counts')
+  for i, (value, elements) in enumerate(groupby(binary_mask.ravel(order='F'))):
+    if i == 0 and value == 1:
+      counts.append(0)
+    counts.append(len(list(elements)))
+
+  return rle
+
 def get_annotations_section(bbox_sourcefile, mask_sourcefile, mask_dir, category_dict):
   # Key is ImageID, LabelName, XMin (rounded to 2 decimals) concatenated together
   bbox_group_dict = get_bbox_dict(bbox_sourcefile)
@@ -79,19 +91,16 @@ def get_annotations_section(bbox_sourcefile, mask_sourcefile, mask_dir, category
       mask_sub_folder = '{}-masks-{}'.format(subset, mask_path[0]) # e.g. validation-masks-a
       mask_path = os.path.join(mask_dir, mask_sub_folder, mask_path)
       mask = cv2.imread(mask_path, 0)
-      height = mask.shape[0]
-      width = mask.shape[1]
       category_id = category_dict[label_name] # Maps class/label name to integer
 
       # convert input mask to expected COCO API input --
       mask = mask.reshape(mask.shape[0], mask.shape[1], 1)
       mask = mask.astype(np.uint8)
       mask = np.asfortranarray(mask)
+      counts = binary_mask_to_rle(mask)
       # RLE encode mask
       encoded_mask = coco_mask.encode(mask)
-      counts = encoded_mask[0]['counts']
-
-      bbox = coco_mask.toBbox(encoded_mask)[0] # [top left x position, top left y position, width, height]
+      bbox = coco_mask.toBbox(encoded_mask)[0].tolist() # [top left x position, top left y position, width, height]
       area = bbox[2] * bbox[3]
 
       # Figure out IsGroupOf value
@@ -102,8 +111,8 @@ def get_annotations_section(bbox_sourcefile, mask_sourcefile, mask_dir, category
       annotations.append(
         {
           'segmentation': {
-            'counts': counts,
-            'size': [width, height]
+            'counts': counts['counts'],
+            'size': counts['size']
           },
           'area': area,
           'iscrowd': is_group_of,
