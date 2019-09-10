@@ -62,8 +62,9 @@ class BinaryMaskList(object):
             elif isinstance(masks[0], dict) and "counts" in masks[0]:
                 # RLE interpretation
                 rle_sizes = [tuple(inst["size"]) for inst in masks]
-
-                masks = mask_utils.decode(masks)  # [h, w, n]
+                
+                rleObjs = [mask_utils.frPyObjects(mask, size[1], size[0]) for mask in masks]
+                masks = mask_utils.decode(rleObjs)  # [h, w, n]
                 masks = torch.tensor(masks).permute(2, 0, 1)  # [n, h, w]
 
                 assert rle_sizes.count(rle_sizes[0]) == len(rle_sizes), (
@@ -71,7 +72,7 @@ class BinaryMaskList(object):
                 )
 
                 # in RLE, height come first in "size"
-                rle_height, rle_width = rle_sizes[0]
+                rle_height, rle_width = rle_sizes[0][:2]
                 assert masks.shape[1] == rle_height
                 assert masks.shape[2] == rle_width
 

@@ -7,6 +7,14 @@ import os
 class DatasetCatalog(object):
     DATA_DIR = "datasets"
     DATASETS = {
+        "open_images_train": {
+            "img_dir": "open_images_segmentation/images/validation",
+            "ann_file": "open_images_segmentation/annotations/validation_coco.json"
+        },
+        "open_images_val": {
+            "img_dir": "open_images_segmentation/images/validation",
+            "ann_file": "open_images_segmentation/annotations/validation_coco.json"
+        },
         "coco_2017_train": {
             "img_dir": "coco/train2017",
             "ann_file": "coco/annotations/instances_train2017.json"
@@ -128,6 +136,17 @@ class DatasetCatalog(object):
             )
             return dict(
                 factory="PascalVOCDataset",
+                args=args,
+            )
+        elif "open" in name:
+            data_dir = DatasetCatalog.DATA_DIR
+            attrs = DatasetCatalog.DATASETS[name]
+            args = dict(
+                root=os.path.join(data_dir, attrs["img_dir"]),
+                ann_file=os.path.join(data_dir, attrs["ann_file"]),
+            )
+            return dict(
+                factory="OpenImagesDataset",
                 args=args,
             )
         raise RuntimeError("Dataset not available: {}".format(name))
