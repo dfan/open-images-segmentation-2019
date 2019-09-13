@@ -8,8 +8,8 @@ class DatasetCatalog(object):
     DATA_DIR = "datasets"
     DATASETS = {
         "open_images_train": {
-            "img_dir": "open_images_segmentation/images/validation",
-            "ann_file": "open_images_segmentation/annotations/validation_coco.json"
+            "img_dir": "open_images_segmentation/images/train",
+            "ann_file": "open_images_segmentation/annotations/train_coco.json"
         },
         "open_images_val": {
             "img_dir": "open_images_segmentation/images/validation",
