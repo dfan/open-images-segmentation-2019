@@ -10,7 +10,9 @@ from pycocotools import _mask as coco_mask
 
 def get_images_section(image_sourcefile, image_dir):
   images = []
+  im_id_dict = {}
   # Three fields: ImageID,LabelName,Confidence
+  counter = 1
   with open(image_sourcefile, 'r') as f:
     next(f) # skip header
     for line in f:
@@ -25,12 +27,14 @@ def get_images_section(image_sourcefile, image_dir):
           'file_name': im_filename,
           'height': height,
           'width': width,
-          'id': im_id
+          'id': counter
         }
       )
+      im_id_dict[im_id] = counter
+      counter += 1
 
   print('Generated images section.')
-  return images
+  return images, im_id_dict
 
 def get_categories_section(category_sourcefile):
   categories = []
@@ -76,7 +80,7 @@ def binary_mask_to_rle(binary_mask):
 
   return rle
 
-def get_annotations_section(bbox_sourcefile, mask_sourcefile, mask_dir, category_dict):
+def get_annotations_section(bbox_sourcefile, mask_sourcefile, mask_dir, im_id_dict, category_dict):
   # Key is ImageID, LabelName, XMin (rounded to 2 decimals) concatenated together
   bbox_group_dict = get_bbox_dict(bbox_sourcefile)
   annotations = []
@@ -116,7 +120,7 @@ def get_annotations_section(bbox_sourcefile, mask_sourcefile, mask_dir, category
           },
           'area': area,
           'iscrowd': is_group_of,
-          'image_id': image_id,
+          'image_id': im_id_dict['image_id'], # integer
           'bbox': bbox,
           'category_id': category_id,
           'original_category_id': label_name,
@@ -146,10 +150,10 @@ if __name__ == "__main__":
     dataset = {}
     dataset['info'] = {}
     dataset['licenses'] = {}
-    dataset['images'] = get_images_section(image_sourcefile, image_dir)
+    dataset['images'], im_id_dict = get_images_section(image_sourcefile, image_dir)
     categories, category_dict = get_categories_section(category_sourcefile)
     dataset['categories'] = categories
-    dataset['annotations'] = get_annotations_section(bbox_sourcefile, mask_sourcefile, mask_dir, category_dict)
+    dataset['annotations'] = get_annotations_section(bbox_sourcefile, mask_sourcefile, mask_dir, im_id_dict, category_dict)
 
     output_file = os.path.join(annotation_dir, '{}_coco.json'.format(subset))
     with open(output_file, 'w') as f:
