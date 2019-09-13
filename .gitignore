@@ -11,3 +11,4 @@ sample_validation_submission.csv
 config.yml
 labels.json
 last_checkpoint
+maskrcnn/inference
