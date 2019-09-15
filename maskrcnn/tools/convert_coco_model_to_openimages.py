@@ -53,7 +53,7 @@ newdict['model'] = removekey(_d['model'], ['module.roi_heads.box.feature_extract
                                             'module.roi_heads.mask.predictor.mask_fcn_logits.weight',
                                             'module.roi_heads.mask.predictor.mask_fcn_logits.bias'])
 
-newdict = removeKey(_d, ['optimizer', 'scheduler', 'iteration'])
+newdict = removekey(_d, ['optimizer', 'scheduler', 'iteration'])
 
 torch.save(newdict, args.save_path)
 print('saved to {}.'.format(args.save_path))
