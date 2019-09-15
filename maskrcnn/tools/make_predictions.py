@@ -17,6 +17,7 @@ import base64
 import numpy as np
 from pycocotools import _mask as coco_mask
 import typing as t
+from tqdm import tqdm
 import zlib
 
 class Resize(object):
@@ -104,7 +105,7 @@ if __name__ == "__main__":
     )
   ])
   dataset = OpenImagesTestDataset(test_process_steps)
-  test_params = {'batch_size': 1, 'num_workers': 3}
+  test_params = {'batch_size': 1, 'num_workers': 3, 'pin_memory': False}
   dataloader = data.DataLoader(dataset, **test_params)
 
   category_dict = get_categories()
@@ -114,31 +115,50 @@ if __name__ == "__main__":
   f_out.write(header + '\n')
 
   with torch.no_grad():
-    for counter, (image, filename, shape) in enumerate(dataloader):
+    for counter, (image, filename, shape) in tqdm(enumerate(dataloader), total=len(dataloader)):
       image = image.to(device)
       image = image[0]
       output = model(image)[0]
       orig_height, orig_width = shape
 
       filename = filename[0]
-      for i in range(len(output)):
-          image_id = filename.split('/')[-1].replace('.jpg', '')
-          sigmoid_mask = output.get_field('mask')[i] # 1 x 28 x 28 (MaskRCNN produces 28x28 which is then resized to ROI)
-          sigmoid_mask = sigmoid_mask.permute(1,2,0).cpu().numpy()
-          sigmoid_mask = cv2.resize(sigmoid_mask, (orig_height, orig_width), interpolation=cv2.INTER_LINEAR)
-          mask = sigmoid_mask > 0.5
-          mask = cv2.resize(np.float32(mask), (orig_width, orig_height))
+      image_id = filename.split('/')[-1].replace('.jpg', '')
+      f_out.write('{},{},{},'.format(image_id, orig_width.item(), orig_height.item()))
+      all_predictions = []
+      
+      #if len(output) == 0:
+      #  mask = np.zeros((orig_height, orig_width))
+      #  formatted_mask = convert_mask_to_format(mask)
+      #  pred_class = '/m/01bms0'
+      #  score = 0.0
+      #  all_predictions.extend([pred_class, str(score), str(formatted_mask, 'utf-8')])
+      #  print('{} has no predictions'.format(filename))
+    
+      masks = output.get_field('mask')
+      labels = output.get_field('labels')
+      scores = output.get_field('scores')
+      # Sort scores and get top 5
+      sorted_scores = np.array([x.item() for x in scores])
+      top_indexes = np.argsort(-sorted_scores)
+      end = min(5, len(sorted_scores))
+      top_indexes = top_indexes[:end]
 
-          formatted_mask = convert_mask_to_format(mask)
+      for i in top_indexes:
+        sigmoid_mask = masks[i] # 1 x 28 x 28 (MaskRCNN produces 28x28 which is then resized to ROI)
+        sigmoid_mask = sigmoid_mask.permute(1,2,0).cpu().numpy()
+        sigmoid_mask = cv2.resize(sigmoid_mask, (orig_height, orig_width), interpolation=cv2.INTER_LINEAR)
+        mask = sigmoid_mask > 0.5
+        mask = cv2.resize(np.float32(mask), (orig_width, orig_height))
+
+        formatted_mask = convert_mask_to_format(mask).decode()
           
-          label = output.get_field('labels')[i].item()
-          pred_class = category_dict[label]
-          score = output.get_field('scores')[i].item()
+        label = labels[i].item()
+        pred_class = category_dict[label]
+        score = round(scores[i].item(), 5)
           
-          prediction_string = '{} {} {}'.format(pred_class, score, str(formatted_mask, 'utf-8'))
-          f_out.write('{},{},{},{}\n'.format(image_id, orig_width.item(), orig_height.item(), prediction_string))
-        
-      if (counter + 1)  % 1000 == 0:
-         print('Processed {} test images.'.format(counter + 1))
+        all_predictions.extend([pred_class, str(score), formatted_mask])
+      prediction_string = ' '.join(all_predictions)
+      f_out.write(prediction_string + '\n')
+      
   f_out.close()
 
