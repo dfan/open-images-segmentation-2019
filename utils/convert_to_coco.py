@@ -11,25 +11,28 @@ from pycocotools import _mask as coco_mask
 def get_images_section(image_sourcefile, image_dir):
   images = []
   im_id_dict = {}
+  seen_images = {} # image IDs are non-unique because could have multiple classes
   # Three fields: ImageID,LabelName,Confidence
   counter = 1
   with open(image_sourcefile, 'r') as f:
     next(f) # skip header
     for line in f:
-      im_id, label_name, _ = line.strip().split(',')
-      im_filename = '{}.jpg'.format(im_id)
-      im = cv2.imread(os.path.join(image_dir, im_filename))
-      height = im.shape[0]
-      width = im.shape[1]
+      im_id, _, _ = line.strip().split(',')
+      if im_id not in seen_images:
+        im_filename = '{}.jpg'.format(im_id)
+        im = cv2.imread(os.path.join(image_dir, im_filename))
+        height = im.shape[0]
+        width = im.shape[1]
 
-      images.append(
-        {
-          'file_name': im_filename,
-          'height': height,
-          'width': width,
-          'id': counter
-        }
-      )
+        images.append(
+          {
+            'file_name': im_filename,
+            'height': height,
+            'width': width,
+            'id': counter
+          }
+        )
+      seen_images[im_id] = True
       im_id_dict[im_id] = counter
       counter += 1
 
@@ -120,7 +123,7 @@ def get_annotations_section(bbox_sourcefile, mask_sourcefile, mask_dir, im_id_di
           },
           'area': area,
           'iscrowd': is_group_of,
-          'image_id': im_id_dict['image_id'], # integer
+          'image_id': im_id_dict[image_id], # integer
           'bbox': bbox,
           'category_id': category_id,
           'original_category_id': label_name,
@@ -135,27 +138,30 @@ def get_annotations_section(bbox_sourcefile, mask_sourcefile, mask_dir, im_id_di
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='Convert OpenImages annotations into COCO format')
   parser.add_argument('-p', '--path', help='Path to OpenImages dataset', type=str, required=True)
+  parser.add_argument('-s', '--subset', help="'train' or 'validation'", type=str, required=True)
   args = vars(parser.parse_args())
 
   root_dir = args['path']
-  for subset in ['train', 'validation']:
-    annotation_dir = os.path.join(root_dir, 'annotations')
-    image_dir = os.path.join(root_dir, 'images', subset)
-    mask_dir = os.path.join(root_dir, 'masks', subset)
-    category_sourcefile = os.path.join(annotation_dir, 'challenge-2019-classes-description-segmentable.csv')
-    image_sourcefile = os.path.join(annotation_dir, 'challenge-2019-{}-segmentation-imagelabels.csv'.format(subset))
-    bbox_sourcefile = os.path.join(annotation_dir, 'challenge-2019-{}-segmentation-bbox.csv'.format(subset))
-    mask_sourcefile = os.path.join(annotation_dir, 'challenge-2019-{}-segmentation-masks.csv'.format(subset))
+  subset = args['subset']
+  assert(subset == 'train' or subset == 'validation')
 
-    dataset = {}
-    dataset['info'] = {}
-    dataset['licenses'] = {}
-    dataset['images'], im_id_dict = get_images_section(image_sourcefile, image_dir)
-    categories, category_dict = get_categories_section(category_sourcefile)
-    dataset['categories'] = categories
-    dataset['annotations'] = get_annotations_section(bbox_sourcefile, mask_sourcefile, mask_dir, im_id_dict, category_dict)
+  annotation_dir = os.path.join(root_dir, 'annotations')
+  image_dir = os.path.join(root_dir, 'images', subset)
+  mask_dir = os.path.join(root_dir, 'masks', subset)
+  category_sourcefile = os.path.join(annotation_dir, 'challenge-2019-classes-description-segmentable.csv')
+  image_sourcefile = os.path.join(annotation_dir, 'challenge-2019-{}-segmentation-imagelabels.csv'.format(subset))
+  bbox_sourcefile = os.path.join(annotation_dir, 'challenge-2019-{}-segmentation-bbox.csv'.format(subset))
+  mask_sourcefile = os.path.join(annotation_dir, 'challenge-2019-{}-segmentation-masks.csv'.format(subset))
 
-    output_file = os.path.join(annotation_dir, '{}_coco.json'.format(subset))
-    with open(output_file, 'w') as f:
-      json.dump(dataset, f)
-    print('Finished generating {} COCO file.'.format(subset))
+  dataset = {}
+  dataset['info'] = {}
+  dataset['licenses'] = {}
+  dataset['images'], im_id_dict = get_images_section(image_sourcefile, image_dir)
+  categories, category_dict = get_categories_section(category_sourcefile)
+  dataset['categories'] = categories
+  dataset['annotations'] = get_annotations_section(bbox_sourcefile, mask_sourcefile, mask_dir, im_id_dict, category_dict)
+
+  output_file = os.path.join(annotation_dir, '{}_coco.json'.format(subset))
+  with open(output_file, 'w') as f:
+    json.dump(dataset, f)
+  print('Finished generating {} COCO file.'.format(subset))
