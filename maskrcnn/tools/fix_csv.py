@@ -32,16 +32,17 @@ def fix_csv(input_file, output_file):
         lines_to_write[image_id] = '{},{},{},{}'.format(image_id, width, height, prediction_string)
       else:
         old_string = lines_to_write[image_id]
-        lines_to_write[image_id] = '{} {}'.format(old_string, prediction_string)
+        if len(old_string.split(' ')) < 12:
+          lines_to_write[image_id] = '{} {}'.format(old_string, prediction_string)
   
   # Take care of images with no predictions
   all_im_ids = get_all_im_ids()
   remaining_ids = list(set(all_im_ids) - set(lines_to_write.keys()))
 
-  print('{} images without predictions'.format(len(remaining_ids))
+  print('{} images without predictions'.format(len(remaining_ids)))
   for im_id in remaining_ids:
     image = cv2.imread(os.path.join('/home/dfan/datasets/open_images_segmentation/images/test', im_id + '.jpg'))
-    lines_to_write[im_id] = '{},{},{}'.format(im_id, image.shape[1], image.shape[0])
+    lines_to_write[im_id] = '{},{},{},'.format(im_id, image.shape[1], image.shape[0])
 
   with open(output_file, 'w') as f:
     f.write('ImageID,ImageWidth,ImageHeight,PredictionString\n')
