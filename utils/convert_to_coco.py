@@ -8,17 +8,17 @@ import numpy as np
 import os
 from pycocotools import _mask as coco_mask
 
-def get_images_section(image_sourcefile, image_dir):
+def get_images_section(mask_sourcefile, image_dir):
   images = []
   im_id_dict = {}
-  seen_images = {} # image IDs are non-unique because could have multiple classes
+  # image IDs are non-unique because could have multiple classes
   # Three fields: ImageID,LabelName,Confidence
   counter = 1
-  with open(image_sourcefile, 'r') as f:
+  with open(mask_sourcefile, 'r') as f:
     next(f) # skip header
     for line in f:
-      im_id, _, _ = line.strip().split(',')
-      if im_id not in seen_images:
+      _, im_id, _, _, _, _, _, _, _, _ = line.strip().split(',')
+      if im_id not in im_id_dict:
         im_filename = '{}.jpg'.format(im_id)
         im = cv2.imread(os.path.join(image_dir, im_filename))
         height = im.shape[0]
@@ -32,9 +32,8 @@ def get_images_section(image_sourcefile, image_dir):
             'id': counter
           }
         )
-      seen_images[im_id] = True
-      im_id_dict[im_id] = counter
-      counter += 1
+        im_id_dict[im_id] = counter
+        counter += 1
 
   print('Generated images section.')
   return images, im_id_dict
@@ -149,14 +148,13 @@ if __name__ == "__main__":
   image_dir = os.path.join(root_dir, 'images', subset)
   mask_dir = os.path.join(root_dir, 'masks', subset)
   category_sourcefile = os.path.join(annotation_dir, 'challenge-2019-classes-description-segmentable.csv')
-  image_sourcefile = os.path.join(annotation_dir, 'challenge-2019-{}-segmentation-imagelabels.csv'.format(subset))
   bbox_sourcefile = os.path.join(annotation_dir, 'challenge-2019-{}-segmentation-bbox.csv'.format(subset))
   mask_sourcefile = os.path.join(annotation_dir, 'challenge-2019-{}-segmentation-masks.csv'.format(subset))
 
   dataset = {}
   dataset['info'] = {}
   dataset['licenses'] = {}
-  dataset['images'], im_id_dict = get_images_section(image_sourcefile, image_dir)
+  dataset['images'], im_id_dict = get_images_section(mask_sourcefile, image_dir)
   categories, category_dict = get_categories_section(category_sourcefile)
   dataset['categories'] = categories
   dataset['annotations'] = get_annotations_section(bbox_sourcefile, mask_sourcefile, mask_dir, im_id_dict, category_dict)
