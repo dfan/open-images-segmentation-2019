@@ -144,19 +144,20 @@ if __name__ == "__main__":
       top_indexes = top_indexes[:end]
 
       for i in top_indexes:
-        sigmoid_mask = masks[i] # 1 x 28 x 28 (MaskRCNN produces 28x28 which is then resized to ROI)
-        sigmoid_mask = sigmoid_mask.permute(1,2,0).cpu().numpy()
-        sigmoid_mask = cv2.resize(sigmoid_mask, (orig_height, orig_width), interpolation=cv2.INTER_LINEAR)
-        mask = sigmoid_mask > 0.5
-        mask = cv2.resize(np.float32(mask), (orig_width, orig_height))
+        if scores[i].item() > 0.3:
+          sigmoid_mask = masks[i] # 1 x 28 x 28 (MaskRCNN produces 28x28 which is then resized to ROI)
+          sigmoid_mask = sigmoid_mask.permute(1,2,0).cpu().numpy()
+          sigmoid_mask = cv2.resize(sigmoid_mask, (orig_width, orig_height), interpolation=cv2.INTER_LINEAR)
+          assert(sigmoid_mask.shape == (orig_height, orig_width))
+          mask = sigmoid_mask > 0.5
 
-        formatted_mask = convert_mask_to_format(mask).decode()
+          formatted_mask = convert_mask_to_format(mask).decode()
           
-        label = labels[i].item()
-        pred_class = category_dict[label]
-        score = round(scores[i].item(), 5)
+          label = labels[i].item()
+          pred_class = category_dict[label]
+          score = round(scores[i].item(), 5)
           
-        all_predictions.extend([pred_class, str(score), formatted_mask])
+          all_predictions.extend([pred_class, str(score), formatted_mask])
       prediction_string = ' '.join(all_predictions)
       f_out.write(prediction_string + '\n')
       

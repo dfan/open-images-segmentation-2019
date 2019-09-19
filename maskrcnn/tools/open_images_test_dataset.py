@@ -19,7 +19,7 @@ class OpenImagesTestDataset(data.dataset.Dataset):
 
   def __getitem__(self, index):
     im = Image.open(self.img_names[index])
-    orig_height, orig_width = im.size
+    orig_width, orig_height = im.size
 
     if im.getbands()[0] == 'L':
       im = im.convert('RGB')
