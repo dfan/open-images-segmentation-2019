@@ -11,19 +11,41 @@ from open_images_test_dataset import OpenImagesTestDataset
 
 from torchvision.transforms import functional as F
 import random
+from PIL import ImageOps
 
 import cv2
 import base64
 import numpy as np
 from pycocotools import _mask as coco_mask
-import typing as t
 from tqdm import tqdm
 import zlib
 
 class Resize(object):
     def __call__(self, image):
-        image = F.resize(image, (1024, 1024))
-        return image
+        w,h = image.size
+       
+        # Resize longer side to 1024, preserve aspect ratio
+        if w < h:
+          image = F.resize(image, (1024, int(round(w * 1024 / h))))
+        else:
+          image = F.resize(image, (int(round(h * 1024 / w)), 1024))
+        
+        top_pad = (1024 - image.size[1]) // 2 # PIL image size is width x height
+        bottom_pad = 1024 - image.size[1] - top_pad
+        left_pad = (1024 - image.size[0]) // 2
+        right_pad = 1024 - image.size[0] - left_pad
+        padding = (left_pad, top_pad, right_pad, bottom_pad)
+        
+        image = ImageOps.expand(image, padding)
+        return image, padding
+
+class ToTensor(object):
+    # Wrapper so image padding can get passed
+    def __call__(self, tuple_input):
+        image, padding = tuple_input
+        if padding is None:
+            return transforms.ToTensor()(image)
+        return transforms.ToTensor()(image), padding
 
 class Normalize(object):
     def __init__(self, mean, std, to_bgr255=True):
@@ -31,13 +53,14 @@ class Normalize(object):
         self.std = std
         self.to_bgr255 = to_bgr255
 
-    def __call__(self, image, target=None):
+    def __call__(self, tuple_input):
+        image, padding = tuple_input
         if self.to_bgr255:
-            image = image[[2, 1, 0]] * 255
+            image = image[[2, 1, 0]] * 255.0
         image = F.normalize(image, mean=self.mean, std=self.std)
-        if target is None:
+        if padding is None:
             return image
-        return image, target
+        return image, padding
 
 def is_data_parallel(model):
     for key in model.state_dict():
@@ -96,11 +119,11 @@ if __name__ == "__main__":
   model.load_state_dict(model_dict)
   model.to(device)
   model.eval()
-
+  
   test_process_steps = transforms.Compose([
     Resize(),
-    transforms.ToTensor(),
-    Normalize(
+    ToTensor(),
+     Normalize(
         mean=cfg.INPUT.PIXEL_MEAN, std=cfg.INPUT.PIXEL_STD, to_bgr255=cfg.INPUT.TO_BGR255
     )
   ])
@@ -115,7 +138,7 @@ if __name__ == "__main__":
   f_out.write(header + '\n')
 
   with torch.no_grad():
-    for counter, (image, filename, shape) in tqdm(enumerate(dataloader), total=len(dataloader)):
+    for counter, (image, filename, shape, padding) in tqdm(enumerate(dataloader), total=len(dataloader)):
       image = image.to(device)
       image = image[0]
       output = model(image)[0]
@@ -125,15 +148,7 @@ if __name__ == "__main__":
       image_id = filename.split('/')[-1].replace('.jpg', '')
       f_out.write('{},{},{},'.format(image_id, orig_width.item(), orig_height.item()))
       all_predictions = []
-      
-      #if len(output) == 0:
-      #  mask = np.zeros((orig_height, orig_width))
-      #  formatted_mask = convert_mask_to_format(mask)
-      #  pred_class = '/m/01bms0'
-      #  score = 0.0
-      #  all_predictions.extend([pred_class, str(score), str(formatted_mask, 'utf-8')])
-      #  print('{} has no predictions'.format(filename))
-    
+       
       masks = output.get_field('mask')
       labels = output.get_field('labels')
       scores = output.get_field('scores')
@@ -144,12 +159,21 @@ if __name__ == "__main__":
       top_indexes = top_indexes[:end]
 
       for i in top_indexes:
-        if scores[i].item() > 0.3:
+        if scores[i].item() > 0.7:
           sigmoid_mask = masks[i] # 1 x 28 x 28 (MaskRCNN produces 28x28 which is then resized to ROI)
           sigmoid_mask = sigmoid_mask.permute(1,2,0).cpu().numpy()
+          # Recover from padding
+          sigmoid_mask = cv2.resize(sigmoid_mask, (1024, 1024), interpolation=cv2.INTER_LINEAR)
+          left_pad, top_pad, right_pad, bottom_pad = [x.item() for x in padding]
+          sigmoid_mask = sigmoid_mask[top_pad:1024-bottom_pad, left_pad:1024-right_pad]
+          #cv2.imwrite('original.png', image.permute(1,2,0).cpu().numpy())
+          #new_im = image.permute(1,2,0).cpu().numpy()[top_pad:1024-bottom_pad, left_pad:1024-right_pad]
+          #cv2.imwrite('new.png', new_im)
+
           sigmoid_mask = cv2.resize(sigmoid_mask, (orig_width, orig_height), interpolation=cv2.INTER_LINEAR)
           assert(sigmoid_mask.shape == (orig_height, orig_width))
           mask = sigmoid_mask > 0.5
+          #cv2.imwrite('mask.png', mask * 255)
 
           formatted_mask = convert_mask_to_format(mask).decode()
           
