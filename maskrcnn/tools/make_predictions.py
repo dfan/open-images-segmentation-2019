@@ -56,7 +56,7 @@ class Normalize(object):
     def __call__(self, tuple_input):
         image, padding = tuple_input
         if self.to_bgr255:
-            image = image[[2, 1, 0]] * 255.0
+            image = image[[2, 1, 0], :, :] * 255.0
         image = F.normalize(image, mean=self.mean, std=self.std)
         if padding is None:
             return image
@@ -148,41 +148,49 @@ if __name__ == "__main__":
       image_id = filename.split('/')[-1].replace('.jpg', '')
       f_out.write('{},{},{},'.format(image_id, orig_width.item(), orig_height.item()))
       all_predictions = []
-       
+    
+      boxes = output.bbox
       masks = output.get_field('mask')
-      labels = output.get_field('labels')
-      scores = output.get_field('scores')
-      # Sort scores and get top 5
-      sorted_scores = np.array([x.item() for x in scores])
-      top_indexes = np.argsort(-sorted_scores)
-      end = min(5, len(sorted_scores))
-      top_indexes = top_indexes[:end]
+      labels = output.get_field('labels').tolist()
+      scores = output.get_field('scores').tolist()      
 
-      for i in top_indexes:
-        if scores[i].item() > 0.7:
-          sigmoid_mask = masks[i] # 1 x 28 x 28 (MaskRCNN produces 28x28 which is then resized to ROI)
-          sigmoid_mask = sigmoid_mask.permute(1,2,0).cpu().numpy()
+      # Sort scores and get top 5
+      # sorted_scores = np.array(scores)
+      # top_indexes = np.argsort(-sorted_scores)
+      # end = min(5, len(sorted_scores))
+      # top_indexes = top_indexes[:end]
+
+      for i in range(len(masks)):
+        if scores[i] > 0.7:
+          x_min, y_min, x_max, y_max = [int(round(x.item())) for x in boxes[i]]
+          roi_mask = masks[i] # 1 x 28 x 28 (MaskRCNN produces 28x28 which is then resized to ROI)
+          roi_mask = roi_mask.permute(1,2,0).cpu().numpy()
+          roi_mask = cv2.resize(roi_mask, (x_max-x_min+1, y_max-y_min+1), interpolation=cv2.INTER_LINEAR)
+          sigmoid_mask = np.zeros((1024, 1024))
+          sigmoid_mask[y_min:y_max+1, x_min:x_max+1] = roi_mask
+          
           # Recover from padding
-          sigmoid_mask = cv2.resize(sigmoid_mask, (1024, 1024), interpolation=cv2.INTER_LINEAR)
           left_pad, top_pad, right_pad, bottom_pad = [x.item() for x in padding]
+          cv2.imwrite('output/{}_old.png'.format(image_id), image.permute(1,2,0).cpu().numpy())
+          cv2.imwrite('output/{}_mask_old_{}.png'.format(image_id, round(scores[i], 5)), (sigmoid_mask > 0.5) * 255)
           sigmoid_mask = sigmoid_mask[top_pad:1024-bottom_pad, left_pad:1024-right_pad]
-          #cv2.imwrite('original.png', image.permute(1,2,0).cpu().numpy())
-          #new_im = image.permute(1,2,0).cpu().numpy()[top_pad:1024-bottom_pad, left_pad:1024-right_pad]
-          #cv2.imwrite('new.png', new_im)
+          new_im = image.permute(1,2,0).cpu().numpy()[top_pad:1024-bottom_pad, left_pad:1024-right_pad]
+          cv2.imwrite('output/{}_new.png'.format(image_id), new_im)
+          cv2.imwrite('output/{}_mask_new_{}.png'.format(image_id, round(scores[i], 5)), (sigmoid_mask > 0.5)*255)
 
           sigmoid_mask = cv2.resize(sigmoid_mask, (orig_width, orig_height), interpolation=cv2.INTER_LINEAR)
           assert(sigmoid_mask.shape == (orig_height, orig_width))
           mask = sigmoid_mask > 0.5
-          #cv2.imwrite('mask.png', mask * 255)
 
           formatted_mask = convert_mask_to_format(mask).decode()
           
-          label = labels[i].item()
+          label = labels[i]
           pred_class = category_dict[label]
-          score = round(scores[i].item(), 5)
+          score = round(scores[i], 5)
           
           all_predictions.extend([pred_class, str(score), formatted_mask])
       prediction_string = ' '.join(all_predictions)
+      #print(image_id, orig_width, orig_height, prediction_string)
       f_out.write(prediction_string + '\n')
       
   f_out.close()

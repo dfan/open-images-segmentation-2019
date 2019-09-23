@@ -21,6 +21,9 @@ class OpenImagesTestDataset(data.dataset.Dataset):
   def __getitem__(self, index):
     im = Image.open(self.img_names[index])
     orig_width, orig_height = im.size
+    
+    if im.getbands()[0] == 'L':
+        im = im.convert('RGB')
 
     if self.transform:
         im, padding = self.transform(im)
