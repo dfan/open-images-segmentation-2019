@@ -171,12 +171,12 @@ if __name__ == "__main__":
           
           # Recover from padding
           left_pad, top_pad, right_pad, bottom_pad = [x.item() for x in padding]
-          cv2.imwrite('output/{}_old.png'.format(image_id), image.permute(1,2,0).cpu().numpy())
-          cv2.imwrite('output/{}_mask_old_{}.png'.format(image_id, round(scores[i], 5)), (sigmoid_mask > 0.5) * 255)
+          # cv2.imwrite('output/{}_old.png'.format(image_id), image.permute(1,2,0).cpu().numpy())
+          # cv2.imwrite('output/{}_mask_old_{}.png'.format(image_id, round(scores[i], 5)), (sigmoid_mask > 0.5) * 255)
           sigmoid_mask = sigmoid_mask[top_pad:1024-bottom_pad, left_pad:1024-right_pad]
           new_im = image.permute(1,2,0).cpu().numpy()[top_pad:1024-bottom_pad, left_pad:1024-right_pad]
-          cv2.imwrite('output/{}_new.png'.format(image_id), new_im)
-          cv2.imwrite('output/{}_mask_new_{}.png'.format(image_id, round(scores[i], 5)), (sigmoid_mask > 0.5)*255)
+          # cv2.imwrite('output/{}_new.png'.format(image_id), new_im)
+          # cv2.imwrite('output/{}_mask_new_{}.png'.format(image_id, round(scores[i], 5)), (sigmoid_mask > 0.5)*255)
 
           sigmoid_mask = cv2.resize(sigmoid_mask, (orig_width, orig_height), interpolation=cv2.INTER_LINEAR)
           assert(sigmoid_mask.shape == (orig_height, orig_width))
