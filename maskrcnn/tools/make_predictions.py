@@ -97,16 +97,14 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument("--config-file", help="path to config file", type=str, required=True)
   parser.add_argument("--weights-file", help="path to trained weights file", type=str, required=True)
-  parser.add_argument("--output-file", help="path to output file", type=str, required=True)
   args = vars(parser.parse_args())
   config_file = args['config_file']
   weights_file = args['weights_file']
-  output_file = args['output_file']
 
   cfg.merge_from_file(config_file)
   cfg.freeze()
   device = cfg.MODEL.DEVICE
-  
+
   model = build_detection_model(cfg)
   is_data_parallel = is_data_parallel(model)
   if is_data_parallel:
@@ -132,10 +130,21 @@ if __name__ == "__main__":
   dataloader = data.DataLoader(dataset, **test_params)
 
   category_dict = get_categories()
-
-  f_out = open(output_file, 'w')
   header = 'ImageID,ImageWidth,ImageHeight,PredictionString'
-  f_out.write(header + '\n')
+
+  f_out_p20 = open('predictions_p20.csv', 'w')
+  f_out_p30 = open('predictions_p30.csv', 'w')
+  f_out_p40 = open('predictions_p40.csv', 'w')
+  f_out_p50 = open('predictions_p50.csv', 'w')
+  f_out_p60 = open('predictions_p60.csv', 'w')
+  f_out_p70 = open('predictions_p70.csv', 'w')
+
+  f_out_p20.write(header + '\n')
+  f_out_p30.write(header + '\n')
+  f_out_p40.write(header + '\n')
+  f_out_p50.write(header + '\n')
+  f_out_p60.write(header + '\n')
+  f_out_p70.write(header + '\n')
 
   with torch.no_grad():
     for counter, (image, filename, shape, padding) in tqdm(enumerate(dataloader), total=len(dataloader)):
@@ -146,22 +155,34 @@ if __name__ == "__main__":
 
       filename = filename[0]
       image_id = filename.split('/')[-1].replace('.jpg', '')
-      f_out.write('{},{},{},'.format(image_id, orig_width.item(), orig_height.item()))
-      all_predictions = []
-    
+      base_fields = '{},{},{},'.format(image_id, orig_width.item(), orig_height.item())
+      f_out_p20.write(base_fields)
+      f_out_p30.write(base_fields)
+      f_out_p40.write(base_fields)
+      f_out_p50.write(base_fields)
+      f_out_p60.write(base_fields)
+      f_out_p70.write(base_fields)
+
+      all_predictions_p20 = []
+      all_predictions_p30 = []
+      all_predictions_p40 = []
+      all_predictions_p50 = []
+      all_predictions_p60 = []
+      all_predictions_p70 = []
+
       boxes = output.bbox
       masks = output.get_field('mask')
       labels = output.get_field('labels').tolist()
       scores = output.get_field('scores').tolist()      
 
-      # Sort scores and get top 5
-      # sorted_scores = np.array(scores)
-      # top_indexes = np.argsort(-sorted_scores)
-      # end = min(5, len(sorted_scores))
-      # top_indexes = top_indexes[:end]
+      # Sort scores and get top 7
+      sorted_scores = np.array(scores)
+      top_indexes = np.argsort(-sorted_scores)
+      end = min(7, len(sorted_scores))
+      top_indexes = top_indexes[:end]
 
-      for i in range(len(masks)):
-        if scores[i] > 0.7:
+      for i in top_indexes:
+        if scores[i] > 0.2:
           x_min, y_min, x_max, y_max = [int(round(x.item())) for x in boxes[i]]
           roi_mask = masks[i] # 1 x 28 x 28 (MaskRCNN produces 28x28 which is then resized to ROI)
           roi_mask = roi_mask.permute(1,2,0).cpu().numpy()
@@ -188,10 +209,36 @@ if __name__ == "__main__":
           pred_class = category_dict[label]
           score = round(scores[i], 5)
           
-          all_predictions.extend([pred_class, str(score), formatted_mask])
-      prediction_string = ' '.join(all_predictions)
+          all_predictions_p20.extend([pred_class, str(score), formatted_mask])
+          if scores[i] > 0.3:
+            all_predictions_p30.extend([pred_class, str(score), formatted_mask])
+          if scores[i] > 0.4:
+            all_predictions_p40.extend([pred_class, str(score), formatted_mask])
+          if scores[i] > 0.5:
+            all_predictions_p50.extend([pred_class, str(score), formatted_mask])
+          if scores[i] > 0.6:
+            all_predictions_p60.extend([pred_class, str(score), formatted_mask])
+          if scores[i] > 0.7:
+            all_predictions_p70.extend([pred_class, str(score), formatted_mask])
+
+      prediction_string_p20 = ' '.join(all_predictions_p20)
+      prediction_string_p30 = ' '.join(all_predictions_p30)
+      prediction_string_p40 = ' '.join(all_predictions_p40)
+      prediction_string_p50 = ' '.join(all_predictions_p50)
+      prediction_string_p60 = ' '.join(all_predictions_p60)
+      prediction_string_p70 = ' '.join(all_predictions_p70)
       #print(image_id, orig_width, orig_height, prediction_string)
-      f_out.write(prediction_string + '\n')
-      
-  f_out.close()
+      f_out_p20.write(prediction_string_p20 + '\n')
+      f_out_p30.write(prediction_string_p30 + '\n')
+      f_out_p40.write(prediction_string_p40 + '\n')
+      f_out_p50.write(prediction_string_p50 + '\n')
+      f_out_p60.write(prediction_string_p60 + '\n')
+      f_out_p70.write(prediction_string_p70 + '\n')
+
+  f_out_p20.close()
+  f_out_p30.close()
+  f_out_p40.close()
+  f_out_p50.close()
+  f_out_p60.close()
+  f_out_p70.close()
 
