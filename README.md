@@ -68,6 +68,7 @@ I could have gotten further in the competition if I got the code and dataset set
 - Miscellaneous
   - I could not figure out what PyTorch and CUDA versions were most compatible with the latest version of the repo. After struggling a bit and getting weird warnings during training, I finally found a combination that worked. Torch 1.1.0 and CUDA 10.1 worked for me.
   - Kaggle kept timing out on my predictions file, and I realized that it was because I wasn't limiting the number of detections per image. It seems like something on the order of 7-8 detections per image is small enough.
+  - I submitted my final predictions file using a confidence threshold of 30%, but afterward found that 20% was even better. Maybe 10% is even better. My AP is much lower for higher thresholds since many images will have no output predictions. I suspect lower confidence thresholds work better since many instances of classes in OpenImages are small and have low representation.
 
 ### Final Reflections
 My validation AP at the time of submission was about 0.17 while my leaderboard score was about 0.09. After training to 1.8M iterations post-competition, my validation AP was 0.21 and leaderboard AP was 0.14. One thing that I should have done is balance the classes, since OpenImages is highly imbalanced. An easy way to do this is to modify the dataloader to weight the less-represented classes more, and the more-represented classes less.
