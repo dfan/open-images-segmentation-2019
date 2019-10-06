@@ -1,7 +1,6 @@
 name: kaggle-open-images
 channels:
   - pytorch
-  - conda-forge
   - defaults
 dependencies:
   - _libgcc_mutex=0.1=main
@@ -15,10 +14,14 @@ dependencies:
   - cairo=1.14.12=h8948797_3
   - certifi=2019.6.16=py37_1
   - cffi=1.12.3=py37h2e261b9_0
+  - cloudpickle=1.2.1=py_0
   - cudatoolkit=10.0.130=0
   - cycler=0.10.0=py37_0
   - cython=0.29.13=py37he6710b0_0
+  - cytoolz=0.10.0=py37h7b6447c_0
+  - dask-core=2.3.0=py_0
   - dbus=1.13.6=h746ee38_0
+  - decorator=4.4.0=py37_1
   - expat=2.2.6=he6710b0_0
   - ffmpeg=4.0=hcdf2ecd_0
   - fontconfig=2.13.0=h9420a91_0
@@ -35,8 +38,10 @@ dependencies:
   - harfbuzz=1.8.8=hffaf4a1_0
   - hdf5=1.10.2=hba1933b_1
   - icu=58.2=h9c2bf20_1
+  - imageio=2.5.0=py37_0
   - intel-openmp=2019.4=243
   - jasper=2.0.14=h07fcdf6_1
+  - joblib=0.13.2=py37_0
   - jpeg=9b=h024ee3a_2
   - keras-applications=1.0.8=py_0
   - keras-preprocessing=1.1.0=py_1
@@ -63,6 +68,7 @@ dependencies:
   - mkl_fft=1.0.14=py37ha843d7b_0
   - mkl_random=1.0.2=py37hd81dba3_0
   - ncurses=6.1=he6710b0_1
+  - networkx=2.3=py_0
   - ninja=1.9.0=py37hfd86e86_0
   - numpy=1.16.4=py37h7e9f1db_0
   - numpy-base=1.16.4=py37hde5b4d6_0
@@ -75,7 +81,6 @@ dependencies:
   - pixman=0.38.0=h7b6447c_0
   - protobuf=3.8.0=py37he6710b0_0
   - py-opencv=3.4.2=py37hb342d67_1
-  - pycocotools=2.0.0=py37h14c3975_1000
   - pycparser=2.19=py37_0
   - pyparsing=2.4.2=py_0
   - pyqt=5.9.2=py37h05f1152_2
@@ -84,8 +89,10 @@ dependencies:
   - pytorch=1.1.0=py3.7_cuda10.0.130_cudnn7.5.1_0
   - pytorch-nightly=1.0.0.dev20190328=py3.7_cuda10.0.130_cudnn7.4.2_0
   - pytz=2019.2=py_0
+  - pywavelets=1.0.3=py37hdd07704_1
   - qt=5.9.7=h5867ecd_1
   - readline=7.0=h7b6447c_5
+  - scikit-image=0.15.0=py37he6710b0_0
   - scipy=1.3.1=py37h7c811a0_0
   - setuptools=41.0.1=py37_0
   - sip=4.19.8=py37hf484d3e_0
@@ -97,6 +104,7 @@ dependencies:
   - tensorflow-estimator=1.14.0=py_0
   - termcolor=1.1.0=py37_1
   - tk=8.6.8=hbc83047_0
+  - toolz=0.10.0=py_0
   - torchvision=0.3.0=py37_cu10.0.130_1
   - tornado=6.0.3=py37h7b6447c_0
   - tqdm=4.32.1=py_0
@@ -108,6 +116,7 @@ dependencies:
   - zstd=1.3.7=h0b5b093_0
   - pip:
     - apex==0.1
+    - pycocotools==2.1
     - yacs==0.1.6
 prefix: /home/dfan/anaconda3/envs/kaggle-open-images
 
